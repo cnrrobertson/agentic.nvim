@@ -32,29 +32,17 @@ function CodexACPAdapter:new(config, on_ready)
     return self
 end
 
---- @param params table
-function CodexACPAdapter:__handle_session_update(params)
-    local type = params.update.sessionUpdate
-
-    if type == "tool_call" then
-        self:_handle_tool_call(params.sessionId, params.update)
-    elseif type == "tool_call_update" then
-        self:_handle_tool_call_update(params.sessionId, params.update)
-    else
-        ACPClient.__handle_session_update(self, params)
-    end
-end
-
+--- @protected
 --- @param session_id string
 --- @param update agentic.acp.CodexToolCallMessage
-function CodexACPAdapter:_handle_tool_call(session_id, update)
+function CodexACPAdapter:__handle_tool_call(session_id, update)
     local kind = update.kind
     --- @type agentic.ui.MessageWriter.ToolCallBlock
     local message = {
         tool_call_id = update.toolCallId,
         kind = kind,
         status = update.status,
-        argument = update.title,
+        argument = update.title or "unknown codex command",
     }
 
     if kind == "read" or kind == "edit" then
@@ -75,19 +63,19 @@ function CodexACPAdapter:_handle_tool_call(session_id, update)
                 old = vim.split(old_string, "\n"),
             }
         end
-    elseif
-        update.rawInput
-        and update.rawInput.parsed_cmd
-        and update.rawInput.parsed_cmd[1]
-    then
-        message.argument = update.rawInput.parsed_cmd[1].cmd or ""
-    else
-        local command = update.rawInput.command
-        if type(command) == "table" then
-            command = table.concat(command, " ")
-        end
+    elseif update.rawInput then
+        if update.rawInput.parsed_cmd and update.rawInput.parsed_cmd[1] then
+            message.argument = update.rawInput.parsed_cmd[1].cmd or ""
+        else
+            local command = update.rawInput.command
+            if type(command) == "table" then
+                command = table.concat(command, " ")
+            end
 
-        message.argument = command or update.title or "unknown codex command"
+            message.argument = command
+                or update.title
+                or "unknown codex command"
+        end
     end
 
     self:__with_subscriber(session_id, function(subscriber)
@@ -95,9 +83,10 @@ function CodexACPAdapter:_handle_tool_call(session_id, update)
     end)
 end
 
+--- @protected
 --- @param session_id string
 --- @param update agentic.acp.ToolCallUpdate
-function CodexACPAdapter:_handle_tool_call_update(session_id, update)
+function CodexACPAdapter:__handle_tool_call_update(session_id, update)
     if not update.status then
         return
     end
