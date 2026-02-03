@@ -76,9 +76,9 @@ https://github.com/user-attachments/assets/4b33bb18-95f7-4fea-bc12-9a9208823911
 When editing files, if your provider asks for permission, you can see a diff
 preview side-by-side or inline, set your preference in your options:
 
-| Side-by-side                                                                                                                        | Inline                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| <img width="1577" height="916" alt="image" src="https://github.com/user-attachments/assets/aef778af-815c-412b-a514-e3dec4280b6d" /> | <img width="1571" height="907" alt="image" src="https://github.com/user-attachments/assets/6f824ec9-023b-4cc4-aca6-647a6b191183" /> |
+| Side-by-side                                          | Inline                                    |
+| ----------------------------------------------------- | ----------------------------------------- |
+| ![Side-by-side diff][preview-diff-side-by-side-image] | ![Inline diff][preview-diff-inline-image] |
 
 ### Image and Screenshot support in the Chat
 
@@ -90,7 +90,7 @@ https://github.com/user-attachments/assets/6ae57136-9c08-4d71-bc8a-59babc49be4d
 
 Continue from where you left off, available for all providers!
 
-<img width="1274" height="716" alt="session-restore" src="https://github.com/user-attachments/assets/736c514a-003a-4984-89f5-0107ede259ce" />
+<img width="1274" height="716" alt="Agentic-session-restore" src="https://github.com/user-attachments/assets/736c514a-003a-4984-89f5-0107ede259ce" />
 
 ### 🐣 NEW: Switch agent mode: Always ask, Accept Edits, Plan mode...
 
@@ -840,3 +840,7 @@ the the acknowledgments 😊.
 [cursor-agent]: https://github.com/blowmage/cursor-agent-acp-npm
 [auggie]: https://www.npmjs.com/package/@augmentcode/auggie
 [auggie-docs]: https://docs.augmentcode.com/cli/setup-auggie
+[preview-diff-side-by-side-image]:
+  https://github.com/user-attachments/assets/aef778af-815c-412b-a514-e3dec4280b6d
+[preview-diff-inline-image]:
+  https://github.com/user-attachments/assets/6f824ec9-023b-4cc4-aca6-647a6b191183
