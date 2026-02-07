@@ -80,6 +80,11 @@ preview side-by-side or inline, set your preference in your options:
 | ----------------------------------------------------- | ----------------------------------------- |
 | ![Side-by-side diff][preview-diff-side-by-side-image] | ![Inline diff][preview-diff-inline-image] |
 
+
+### Dynamic layout rotation: right - bottom - left
+
+https://github.com/user-attachments/assets/000c5a9a-5469-44e3-b302-4074caa58fa9
+
 ### Image and Screenshot support in the Chat
 
 Drag-n-Drop or paste an image from the Clipboard directly to the chat context:
