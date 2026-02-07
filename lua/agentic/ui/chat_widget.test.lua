@@ -1,6 +1,7 @@
----@diagnostic disable: assign-type-mismatch, need-check-nil, undefined-field
 local assert = require("tests.helpers.assert")
 local spy = require("tests.helpers.spy")
+local Config = require("agentic.config")
+local Logger = require("agentic.utils.logger")
 
 describe("agentic.ui.ChatWidget", function()
     --- @type agentic.ui.ChatWidget
@@ -8,224 +9,253 @@ describe("agentic.ui.ChatWidget", function()
 
     ChatWidget = require("agentic.ui.chat_widget")
 
-    describe("show() and hide()", function()
-        local tab_page_id
-        local widget
+    --- Helper to populate a dynamic buffer with content
+    --- @param widget agentic.ui.ChatWidget
+    --- @param name string
+    --- @param content string[]
+    local function fill_buffer(widget, name, content)
+        vim.bo[widget.buf_nrs[name]].modifiable = true
+        vim.api.nvim_buf_set_lines(widget.buf_nrs[name], 0, -1, false, content)
+    end
 
-        before_each(function()
-            vim.cmd("tabnew")
-            tab_page_id = vim.api.nvim_get_current_tabpage()
+    -- Tests that behave identically regardless of layout position
+    for _, position in ipairs({ "right", "left", "bottom" }) do
+        -- Bottom layout uses 2 to avoid touching the screen edge
+        local padding = position == "bottom" and 2 or 1
 
-            local on_submit_spy = spy.new(function() end)
-            widget =
-                ChatWidget:new(tab_page_id, on_submit_spy --[[@as function]])
-        end)
+        describe(string.format("(%s layout)", position), function()
+            local tab_page_id
+            local widget
+            local original_position
 
-        after_each(function()
-            if widget then
+            before_each(function()
+                original_position = Config.windows.position
+                Config.windows.position = position
+
+                vim.cmd("tabnew")
+                tab_page_id = vim.api.nvim_get_current_tabpage()
+
+                local on_submit_spy = spy.new(function() end)
+                widget = ChatWidget:new(
+                    tab_page_id,
+                    on_submit_spy --[[@as function]]
+                )
+            end)
+
+            after_each(function()
+                if widget then
+                    pcall(function()
+                        widget:destroy()
+                    end)
+                end
                 pcall(function()
-                    widget:destroy()
+                    vim.cmd("tabclose")
                 end)
-            end
-            vim.cmd("tabclose")
-        end)
 
-        it("creates widget with valid buffer IDs", function()
-            assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.chat))
-            assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.input))
-            assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.code))
-            assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.files))
-            assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.todos))
-        end)
+                Config.windows.position = original_position
+            end)
 
-        it(
-            "show() creates chat and input windows only when buffers are empty",
-            function()
+            it("creates widget with valid buffer IDs", function()
+                assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.chat))
+                assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.input))
+                assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.code))
+                assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.files))
+                assert.is_true(vim.api.nvim_buf_is_valid(widget.buf_nrs.todos))
+            end)
+
+            it(
+                "show() creates chat and input windows only when buffers are empty",
+                function()
+                    assert.is_falsy(widget:is_open())
+
+                    widget:show()
+
+                    assert.is_true(
+                        vim.api.nvim_win_is_valid(widget.win_nrs.chat)
+                    )
+                    assert.is_true(
+                        vim.api.nvim_win_is_valid(widget.win_nrs.input)
+                    )
+                    assert.is_nil(widget.win_nrs.code)
+                    assert.is_nil(widget.win_nrs.files)
+                    assert.is_nil(widget.win_nrs.todos)
+                end
+            )
+
+            it("hide() closes all windows and preserves buffers", function()
+                widget:show()
+
+                local chat_win = widget.win_nrs.chat
+                local input_win = widget.win_nrs.input
+                local chat_buf = widget.buf_nrs.chat
+                local input_buf = widget.buf_nrs.input
+
+                widget:hide()
+
+                assert.is_false(vim.api.nvim_win_is_valid(chat_win))
+                assert.is_false(vim.api.nvim_win_is_valid(input_win))
+                assert.is_nil(widget.win_nrs.chat)
+                assert.is_nil(widget.win_nrs.input)
                 assert.is_falsy(widget:is_open())
 
-                widget:show()
-
-                assert.is_true(vim.api.nvim_win_is_valid(widget.win_nrs.chat))
-                assert.is_true(vim.api.nvim_win_is_valid(widget.win_nrs.input))
-                assert.is_nil(widget.win_nrs.code)
-                assert.is_nil(widget.win_nrs.files)
-                assert.is_nil(widget.win_nrs.todos)
-            end
-        )
-
-        it("hide() closes all windows and preserves buffers", function()
-            widget:show()
-
-            local chat_win = widget.win_nrs.chat
-            local input_win = widget.win_nrs.input
-            local chat_buf = widget.buf_nrs.chat
-            local input_buf = widget.buf_nrs.input
-
-            widget:hide()
-
-            -- Windows are closed
-            assert.is_false(vim.api.nvim_win_is_valid(chat_win))
-            assert.is_false(vim.api.nvim_win_is_valid(input_win))
-            assert.is_nil(widget.win_nrs.chat)
-            assert.is_nil(widget.win_nrs.input)
-            assert.is_falsy(widget:is_open())
-
-            -- Buffers are preserved
-            assert.equal(chat_buf, widget.buf_nrs.chat)
-            assert.equal(input_buf, widget.buf_nrs.input)
-            assert.is_true(vim.api.nvim_buf_is_valid(chat_buf))
-            assert.is_true(vim.api.nvim_buf_is_valid(input_buf))
-        end)
-
-        it("show() is idempotent when called multiple times", function()
-            widget:show()
-            local first_chat_win = widget.win_nrs.chat
-
-            widget:show()
-
-            assert.equal(first_chat_win, widget.win_nrs.chat)
-            assert.is_true(vim.api.nvim_win_is_valid(widget.win_nrs.chat))
-        end)
-
-        it("hide() is safe when called multiple times", function()
-            widget:show()
-            widget:hide()
-
-            assert.has_no_errors(function()
-                widget:hide()
+                assert.equal(chat_buf, widget.buf_nrs.chat)
+                assert.equal(input_buf, widget.buf_nrs.input)
+                assert.is_true(vim.api.nvim_buf_is_valid(chat_buf))
+                assert.is_true(vim.api.nvim_buf_is_valid(input_buf))
             end)
-        end)
 
-        it("show() after hide() creates new windows", function()
-            widget:show()
-            local first_chat_win = widget.win_nrs.chat
-            widget:hide()
-
-            widget:show()
-
-            assert.are_not.equal(first_chat_win, widget.win_nrs.chat)
-            assert.is_false(vim.api.nvim_win_is_valid(first_chat_win))
-            assert.is_true(vim.api.nvim_win_is_valid(widget.win_nrs.chat))
-        end)
-
-        it("windows are created in correct tabpage", function()
-            widget:show()
-
-            assert.equal(
-                tab_page_id,
-                vim.api.nvim_win_get_tabpage(widget.win_nrs.chat)
-            )
-            assert.equal(
-                tab_page_id,
-                vim.api.nvim_win_get_tabpage(widget.win_nrs.input)
-            )
-        end)
-
-        it("hide() stops insert mode", function()
-            widget:show()
-            vim.api.nvim_set_current_win(widget.win_nrs.input)
-            vim.cmd("startinsert")
-
-            widget:hide()
-
-            assert.are_not.equal("i", vim.fn.mode())
-        end)
-
-        describe("dynamic window creation based on buffer content", function()
-            local test_cases = {
-                {
-                    name = "code",
-                    content = { "local foo = 'bar'", "print(foo)" },
-                },
-                {
-                    name = "files",
-                    content = { "file1.lua", "file2.lua" },
-                },
-                {
-                    name = "todos",
-                    content = { "todo1", "todo2" },
-                },
-            }
-
-            for _, tc in ipairs(test_cases) do
-                it(
-                    string.format(
-                        "creates %s window when buffer has content",
-                        tc.name
-                    ),
-                    function()
-                        local bufnr = widget.buf_nrs[tc.name]
-                        vim.bo[bufnr].modifiable = true
-                        vim.api.nvim_buf_set_lines(
-                            bufnr,
-                            0,
-                            -1,
-                            false,
-                            tc.content
-                        )
-
-                        widget:show()
-
-                        assert.is_true(
-                            vim.api.nvim_win_is_valid(widget.win_nrs[tc.name])
-                        )
-                        assert.equal(
-                            tab_page_id,
-                            vim.api.nvim_win_get_tabpage(
-                                widget.win_nrs[tc.name]
-                            )
-                        )
-                    end
-                )
-            end
-        end)
-
-        it("hide() closes all dynamic windows when they exist", function()
-            -- Setup: add content to all dynamic buffers
-            for _, name in ipairs({ "files", "code", "todos" }) do
-                vim.bo[widget.buf_nrs[name]].modifiable = true
-                vim.api.nvim_buf_set_lines(
-                    widget.buf_nrs[name],
-                    0,
-                    -1,
-                    false,
-                    { "content" }
-                )
-            end
-
-            widget:show()
-
-            local files_win = widget.win_nrs.files
-            local code_win = widget.win_nrs.code
-            local todos_win = widget.win_nrs.todos
-
-            widget:hide()
-
-            assert.is_false(vim.api.nvim_win_is_valid(files_win))
-            assert.is_false(vim.api.nvim_win_is_valid(code_win))
-            assert.is_false(vim.api.nvim_win_is_valid(todos_win))
-            assert.is_nil(widget.win_nrs.files)
-            assert.is_nil(widget.win_nrs.code)
-            assert.is_nil(widget.win_nrs.todos)
-        end)
-
-        describe("dynamic window resizing", function()
-            it("resizes window when content changes", function()
-                vim.bo[widget.buf_nrs.code].modifiable = true
-                vim.api.nvim_buf_set_lines(
-                    widget.buf_nrs.code,
-                    0,
-                    -1,
-                    false,
-                    { "line1", "line2", "line3" }
-                )
+            it("show() is idempotent when called multiple times", function()
+                widget:show()
+                local first_chat_win = widget.win_nrs.chat
 
                 widget:show()
-                local initial_height =
-                    vim.api.nvim_win_get_height(widget.win_nrs.code)
-                assert.equal(4, initial_height) -- 3 lines + 1 padding
 
-                -- Add more content
+                assert.equal(first_chat_win, widget.win_nrs.chat)
+                assert.is_true(vim.api.nvim_win_is_valid(widget.win_nrs.chat))
+            end)
+
+            it("hide() is safe when called multiple times", function()
+                widget:show()
+                widget:hide()
+
+                assert.has_no_errors(function()
+                    widget:hide()
+                end)
+            end)
+
+            it("show() after hide() creates new windows", function()
+                widget:show()
+                local first_chat_win = widget.win_nrs.chat
+                widget:hide()
+
+                widget:show()
+
+                assert.are_not.equal(first_chat_win, widget.win_nrs.chat)
+                assert.is_false(vim.api.nvim_win_is_valid(first_chat_win))
+                assert.is_true(vim.api.nvim_win_is_valid(widget.win_nrs.chat))
+            end)
+
+            it("windows are created in correct tabpage", function()
+                widget:show()
+
+                assert.equal(
+                    tab_page_id,
+                    vim.api.nvim_win_get_tabpage(widget.win_nrs.chat)
+                )
+                assert.equal(
+                    tab_page_id,
+                    vim.api.nvim_win_get_tabpage(widget.win_nrs.input)
+                )
+            end)
+
+            it("hide() stops insert mode", function()
+                widget:show()
+                vim.api.nvim_set_current_win(widget.win_nrs.input)
+                vim.cmd("startinsert")
+
+                widget:hide()
+
+                assert.are_not.equal("i", vim.fn.mode())
+            end)
+
+            describe("dynamic window creation", function()
+                local test_cases = {
+                    {
+                        name = "code",
+                        content = { "local foo = 'bar'", "print(foo)" },
+                    },
+                    {
+                        name = "files",
+                        content = { "file1.lua", "file2.lua" },
+                    },
+                    {
+                        name = "todos",
+                        content = { "todo1", "todo2" },
+                    },
+                }
+
+                for _, tc in ipairs(test_cases) do
+                    it(
+                        string.format(
+                            "creates %s window when buffer has content",
+                            tc.name
+                        ),
+                        function()
+                            fill_buffer(widget, tc.name, tc.content)
+                            widget:show()
+
+                            assert.is_true(
+                                vim.api.nvim_win_is_valid(
+                                    widget.win_nrs[tc.name]
+                                )
+                            )
+                            assert.equal(
+                                tab_page_id,
+                                vim.api.nvim_win_get_tabpage(
+                                    widget.win_nrs[tc.name]
+                                )
+                            )
+                        end
+                    )
+                end
+            end)
+
+            it("hide() closes all dynamic windows when they exist", function()
+                for _, name in ipairs({ "files", "code", "todos" }) do
+                    fill_buffer(widget, name, { "content" })
+                end
+
+                widget:show()
+
+                local files_win = widget.win_nrs.files
+                local code_win = widget.win_nrs.code
+                local todos_win = widget.win_nrs.todos
+
+                widget:hide()
+
+                assert.is_false(vim.api.nvim_win_is_valid(files_win))
+                assert.is_false(vim.api.nvim_win_is_valid(code_win))
+                assert.is_false(vim.api.nvim_win_is_valid(todos_win))
+                assert.is_nil(widget.win_nrs.files)
+                assert.is_nil(widget.win_nrs.code)
+                assert.is_nil(widget.win_nrs.todos)
+            end)
+
+            it("caps window height at max_height", function()
+                local lines = {}
+                for i = 1, 23 do
+                    lines[i] = "line" .. i
+                end
+                fill_buffer(widget, "code", lines)
+
+                widget:show()
+
+                local height = vim.api.nvim_win_get_height(widget.win_nrs.code)
+                assert.equal(15, height)
+            end)
+
+            it(
+                string.format("dynamic window uses %d line(s) padding", padding),
+                function()
+                    fill_buffer(widget, "code", { "line1", "line2", "line3" })
+
+                    widget:show()
+
+                    local height =
+                        vim.api.nvim_win_get_height(widget.win_nrs.code)
+                    assert.equal(3 + padding, height)
+                end
+            )
+
+            it("resizes window when content changes", function()
+                fill_buffer(widget, "code", { "line1", "line2", "line3" })
+
+                widget:show()
+                assert.equal(
+                    3 + padding,
+                    vim.api.nvim_win_get_height(widget.win_nrs.code)
+                )
+
                 vim.api.nvim_buf_set_lines(
                     widget.buf_nrs.code,
                     3,
@@ -236,56 +266,25 @@ describe("agentic.ui.ChatWidget", function()
 
                 widget:show({ focus_prompt = false })
 
-                local new_height =
+                assert.equal(
+                    7 + padding,
                     vim.api.nvim_win_get_height(widget.win_nrs.code)
-                assert.equal(8, new_height) -- 7 lines + 1 padding
-            end)
-
-            it("caps window height at max_height", function()
-                vim.bo[widget.buf_nrs.code].modifiable = true
-
-                -- Add 23 lines (exceeds default max_height=15)
-                local lines = {}
-                for i = 1, 23 do
-                    lines[i] = "line" .. i
-                end
-                vim.api.nvim_buf_set_lines(
-                    widget.buf_nrs.code,
-                    0,
-                    -1,
-                    false,
-                    lines
                 )
-
-                widget:show()
-
-                local height = vim.api.nvim_win_get_height(widget.win_nrs.code)
-                assert.equal(15, height) -- Capped at default max_height=15
             end)
-        end)
 
-        -- Note: These tests call resize_dynamic_window() directly to simulate
-        -- user actions that trigger buffer changes (e.g., pressing 'd' to delete
-        -- files/code snippets, or agent updating todos). The resize_dynamic_window()
-        -- method is called by SessionManager callbacks when content changes.
-        describe("resize_dynamic_window()", function()
             it("shrinks window when content is removed", function()
-                vim.bo[widget.buf_nrs.code].modifiable = true
-                vim.api.nvim_buf_set_lines(
-                    widget.buf_nrs.code,
-                    0,
-                    -1,
-                    false,
+                fill_buffer(
+                    widget,
+                    "code",
                     { "line1", "line2", "line3", "line4", "line5" }
                 )
 
                 widget:show()
                 assert.equal(
-                    6,
+                    5 + padding,
                     vim.api.nvim_win_get_height(widget.win_nrs.code)
                 )
 
-                -- Simulate user removing content (e.g., pressing 'd' key)
                 vim.api.nvim_buf_set_lines(
                     widget.buf_nrs.code,
                     0,
@@ -294,121 +293,261 @@ describe("agentic.ui.ChatWidget", function()
                     { "line1", "line2" }
                 )
 
-                widget:resize_dynamic_window("code")
+                widget:show({ focus_prompt = false })
 
                 assert.equal(
-                    3,
+                    2 + padding,
                     vim.api.nvim_win_get_height(widget.win_nrs.code)
                 )
             end)
 
-            it("closes window when buffer becomes empty", function()
-                vim.bo[widget.buf_nrs.code].modifiable = true
-                vim.api.nvim_buf_set_lines(
-                    widget.buf_nrs.code,
-                    0,
-                    -1,
-                    false,
-                    { "line1" }
-                )
+            describe("show() re-renders dynamic windows", function()
+                it("closes window when buffer becomes empty", function()
+                    fill_buffer(widget, "code", { "line1" })
 
-                widget:show()
-                assert.is_true(vim.api.nvim_win_is_valid(widget.win_nrs.code))
+                    widget:show()
+                    assert.is_true(
+                        vim.api.nvim_win_is_valid(widget.win_nrs.code)
+                    )
 
-                -- Simulate user removing all content
-                vim.api.nvim_buf_set_lines(
-                    widget.buf_nrs.code,
-                    0,
-                    -1,
-                    false,
-                    {}
-                )
+                    vim.api.nvim_buf_set_lines(
+                        widget.buf_nrs.code,
+                        0,
+                        -1,
+                        false,
+                        {}
+                    )
 
-                widget:resize_dynamic_window("code")
+                    widget:show({ focus_prompt = false })
 
-                assert.is_nil(widget.win_nrs.code)
-            end)
+                    assert.is_nil(widget.win_nrs.code)
+                end)
 
-            it("does nothing if window doesn't exist", function()
-                vim.bo[widget.buf_nrs.code].modifiable = true
-                vim.api.nvim_buf_set_lines(
-                    widget.buf_nrs.code,
-                    0,
-                    -1,
-                    false,
-                    { "line1" }
-                )
+                it("creates window on show when content exists", function()
+                    fill_buffer(widget, "code", { "line1" })
 
-                -- Don't show widget, so window doesn't exist
-                assert.has_no_errors(function()
-                    widget:resize_dynamic_window("code")
+                    assert.has_no_errors(function()
+                        widget:show({ focus_prompt = false })
+                    end)
+
+                    assert.is_true(
+                        vim.api.nvim_win_is_valid(widget.win_nrs.code)
+                    )
                 end)
             end)
         end)
-    end)
+    end
 
-    describe("calculate dynamic height", function()
-        --- Access private function for testing
-        --- @param bufnr number
-        --- @param max_height number
-        --- @return integer
-        local function calculate_dynamic_height(bufnr, max_height)
-            ---@diagnostic disable-next-line: invisible
-            return ChatWidget._calculate_dynamic_height(bufnr, max_height)
-        end
+    -- Right and left layouts behave identically, only split direction differs
+    for _, side in ipairs({ "right", "left" }) do
+        describe(string.format("(%s layout) specific", side), function()
+            local widget
+            local original_position
 
-        --- @param line_count number
-        --- @return number bufnr
-        local function create_buffer_with_lines(line_count)
-            local bufnr = vim.api.nvim_create_buf(false, true)
-            if line_count > 0 then
-                local lines = {}
-                for i = 1, line_count do
-                    lines[i] = "line" .. i
+            before_each(function()
+                original_position = Config.windows.position
+                Config.windows.position = side
+
+                vim.cmd("tabnew")
+
+                local on_submit_spy = spy.new(function() end)
+                widget = ChatWidget:new(
+                    vim.api.nvim_get_current_tabpage(),
+                    on_submit_spy --[[@as function]]
+                )
+            end)
+
+            after_each(function()
+                if widget then
+                    pcall(function()
+                        widget:destroy()
+                    end)
                 end
-                vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-            end
-            return bufnr
-        end
+                pcall(function()
+                    vim.cmd("tabclose")
+                end)
 
-        local test_bufnr
+                Config.windows.position = original_position
+            end)
 
-        after_each(function()
-            if test_bufnr and vim.api.nvim_buf_is_valid(test_bufnr) then
-                vim.api.nvim_buf_delete(test_bufnr, { force = true })
-            end
+            it("input splits below chat", function()
+                widget:show()
+
+                local chat_pos =
+                    vim.api.nvim_win_get_position(widget.win_nrs.chat)
+                local input_pos =
+                    vim.api.nvim_win_get_position(widget.win_nrs.input)
+
+                -- Input row should be greater than chat row (below)
+                assert.is_true(input_pos[1] > chat_pos[1])
+                -- Same column position
+                assert.equal(chat_pos[2], input_pos[2])
+            end)
+
+            it("input has fixed height", function()
+                widget:show()
+
+                local input_height =
+                    vim.api.nvim_win_get_height(widget.win_nrs.input)
+                assert.equal(Config.windows.input.height, input_height)
+            end)
+        end)
+    end
+
+    describe("(bottom layout) specific", function()
+        local widget
+        local original_position
+
+        before_each(function()
+            original_position = Config.windows.position
+            Config.windows.position = "bottom"
+
+            vim.cmd("tabnew")
+
+            local on_submit_spy = spy.new(function() end)
+            widget = ChatWidget:new(
+                vim.api.nvim_get_current_tabpage(),
+                on_submit_spy --[[@as function]]
+            )
         end)
 
-        -- Equivalence classes for: math.min(line_count + 1, max_height)
-        -- 1. Below max: line_count + 1 < max_height -> returns line_count + 1
-        -- 2. At boundary: line_count + 1 == max_height -> returns max_height
-        -- 3. Above max: line_count + 1 > max_height -> returns max_height
+        after_each(function()
+            if widget then
+                pcall(function()
+                    widget:destroy()
+                end)
+            end
+            pcall(function()
+                vim.cmd("tabclose")
+            end)
 
-        it("returns line_count + 1 when below max_height", function()
-            test_bufnr = create_buffer_with_lines(3)
-            -- 3 lines + 1 = 4, which is < 15
-            assert.equal(4, calculate_dynamic_height(test_bufnr, 15))
+            Config.windows.position = original_position
+        end)
+
+        it("input splits right of chat", function()
+            widget:show()
+
+            local chat_pos = vim.api.nvim_win_get_position(widget.win_nrs.chat)
+            local input_pos =
+                vim.api.nvim_win_get_position(widget.win_nrs.input)
+
+            -- Same row (horizontal split)
+            assert.equal(chat_pos[1], input_pos[1])
+            -- Input column should be greater than chat column (to the right)
+            assert.is_true(input_pos[2] > chat_pos[2])
         end)
 
         it(
-            "returns max_height at boundary (line_count + 1 == max_height)",
+            "input width is proportional to chat via stack_width_ratio",
             function()
-                test_bufnr = create_buffer_with_lines(9)
-                -- 9 lines + 1 = 10, which equals max_height
-                assert.equal(10, calculate_dynamic_height(test_bufnr, 10))
+                widget:show()
+
+                local chat_width =
+                    vim.api.nvim_win_get_width(widget.win_nrs.chat)
+                local input_width =
+                    vim.api.nvim_win_get_width(widget.win_nrs.input)
+                local ratio = Config.windows.stack_width_ratio
+
+                local expected = math.floor((chat_width + input_width) * ratio)
+
+                -- Allow +-1 rounding tolerance
+                assert.is_true(math.abs(input_width - expected) <= 1)
+            end
+        )
+    end)
+
+    describe("rotate_layout", function()
+        local widget
+        local original_position
+        local show_stub
+        local notify_stub
+
+        before_each(function()
+            original_position = Config.windows.position
+            Config.windows.position = "right"
+
+            local on_submit_spy = spy.new(function() end)
+            widget = ChatWidget:new(
+                vim.api.nvim_get_current_tabpage(),
+                on_submit_spy --[[@as function]]
+            )
+
+            show_stub = spy.stub(widget, "show")
+            notify_stub = spy.stub(Logger, "notify")
+        end)
+
+        after_each(function()
+            show_stub:revert()
+            notify_stub:revert()
+
+            if widget then
+                pcall(function()
+                    widget:destroy()
+                end)
+            end
+
+            Config.windows.position = original_position
+        end)
+
+        it("uses default layouts when none provided", function()
+            Config.windows.position = "right"
+
+            widget:rotate_layout()
+
+            assert.equal("bottom", Config.windows.position)
+        end)
+
+        it("uses default layouts when empty array provided", function()
+            Config.windows.position = "right"
+
+            widget:rotate_layout({})
+
+            assert.equal("bottom", Config.windows.position)
+        end)
+
+        it(
+            "stays on same layout and warns when only one is provided",
+            function()
+                Config.windows.position = "bottom"
+
+                widget:rotate_layout({ "bottom" })
+
+                assert.equal("bottom", Config.windows.position)
+                assert.spy(notify_stub).was.called(1)
+                local msg = notify_stub.calls[1][1]
+                assert.is_true(msg:find("Only one layout") ~= nil)
             end
         )
 
-        it("returns max_height when line_count + 1 exceeds it", function()
-            test_bufnr = create_buffer_with_lines(20)
-            -- 20 lines + 1 = 21, capped at 15
-            assert.equal(15, calculate_dynamic_height(test_bufnr, 15))
+        it("rotates through all layouts in order", function()
+            local layouts = { "right", "bottom", "left" }
+
+            Config.windows.position = "right"
+            widget:rotate_layout(layouts)
+            assert.equal("bottom", Config.windows.position)
+
+            widget:rotate_layout(layouts)
+            assert.equal("left", Config.windows.position)
+
+            widget:rotate_layout(layouts)
+            assert.equal("right", Config.windows.position)
         end)
 
-        it("treats empty buffer as 1 line (Neovim default)", function()
-            test_bufnr = vim.api.nvim_create_buf(false, true)
-            -- Empty buffer has 1 line by default, so 1 + 1 = 2
-            assert.equal(2, calculate_dynamic_height(test_bufnr, 15))
+        it("falls back to first layout when current is not in list", function()
+            Config.windows.position = "bottom"
+
+            widget:rotate_layout({ "right", "left" })
+
+            assert.equal("right", Config.windows.position)
+        end)
+
+        it("calls show with focus_prompt false", function()
+            widget:rotate_layout()
+
+            assert.spy(show_stub).was.called(1)
+            local call_args = show_stub.calls[1]
+            -- call_args[1] is self, call_args[2] is the opts table
+            assert.equal(false, call_args[2].focus_prompt)
         end)
     end)
 end)

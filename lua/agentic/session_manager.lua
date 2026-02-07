@@ -113,11 +113,11 @@ function SessionManager:new(tab_page_id)
 
     self.file_list = FileList:new(self.widget.buf_nrs.files, function(file_list)
         if file_list:is_empty() then
-            self.widget:close_files_window()
+            self.widget:close_optional_window("files")
             self.widget:move_cursor_to(self.widget.win_nrs.input)
         else
             self.widget:render_header("files", tostring(#file_list:get_files()))
-            self.widget:resize_dynamic_window("files")
+            self.widget:show({ focus_prompt = false })
         end
     end)
 
@@ -125,14 +125,14 @@ function SessionManager:new(tab_page_id)
         self.widget.buf_nrs.code,
         function(code_selection)
             if code_selection:is_empty() then
-                self.widget:close_code_window()
+                self.widget:close_optional_window("code")
                 self.widget:move_cursor_to(self.widget.win_nrs.input)
             else
                 self.widget:render_header(
                     "code",
                     tostring(#code_selection:get_selections())
                 )
-                self.widget:resize_dynamic_window("code")
+                self.widget:show({ focus_prompt = false })
             end
         end
     )
@@ -152,7 +152,6 @@ function SessionManager:_on_session_update(update)
                 self.widget:show({
                     focus_prompt = false,
                 })
-                self.widget:resize_dynamic_window("todos")
             end
         end
     elseif update.sessionUpdate == "agent_message_chunk" then

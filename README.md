@@ -260,6 +260,46 @@ configure it per provider:
 The mode will only be set if it's available from the provider. Use `<S-Tab>` to
 see available modes for your provider.
 
+### Window Layout
+
+Configure the widget layout position and sizing:
+
+```lua
+{
+  "carlos-algms/agentic.nvim",
+  opts = {
+    windows = {
+      position = "right",  -- "right", "left", or "bottom"
+      width = "40%",       -- Sidebar width (position = "right" or "left")
+      height = "30%",      -- Panel height (position = "bottom")
+    },
+  },
+}
+```
+
+- `position` - Widget layout: `"right"` or `"left"` (vertical sidebar) or
+  `"bottom"` (horizontal panel)
+- `width` - Sidebar width when `position` is right or left (percentage, decimal,
+  or absolute)
+- `height` - Panel height when `position = "bottom"` (percentage, decimal, or
+  absolute)
+
+### Rotating Layouts dynamically at runtime
+
+You can rotate between layouts, dynamically, without closing Neovim with
+`rotate_layout()`:
+
+```lua
+-- Rotates through all three layouts: right → bottom → left → right ...
+require("agentic").rotate_layout()
+
+-- Rotates between right and bottom only
+require("agentic").rotate_layout({ "right", "bottom" })
+
+-- Rotates between right and left only
+require("agentic").rotate_layout({ "right", "left" })
+```
+
 ### Customizing Window Options
 
 You can customize the behavior of individual chat widget windows by configuring
@@ -328,6 +368,7 @@ header parts:
 | `:lua require("agentic").new_session()`                      | Start new chat session, destroying and cleaning the current one  |
 | `:lua require("agentic").stop_generation()`                  | Stop current generation or tool execution (session stays active) |
 | `:lua require("agentic").restore_session()`                  | Show session picker to restore a previous session and continue   |
+| `:lua require("agentic").rotate_layout()`                    | Rotate window position through layouts (right → bottom → left)   |
 
 ### Optional Parameters
 
