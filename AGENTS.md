@@ -718,7 +718,8 @@ Agent Client Protocol:
 
 - **Requirements**: External CLI tools must be installed by the user, we don't
   install them for security reasons.
-  - `claude-code-acp` for Claude
+  - `claude-code-acp` for Claude (`claude-acp` provider, deprecated — use `claude-agent-acp`)
+- `claude-agent-acp` for Claude (`claude-agent-acp` provider, new name)
   - `gemini` for Gemini
   - `codex-acp` for Codex
   - `opencode` for OpenCode
@@ -732,7 +733,8 @@ NOTE: Install instructs are in the README.md
 
 Each provider has a dedicated adapter in `lua/agentic/acp/adapters/`:
 
-- `claude_acp_adapter.lua` - Claude Code ACP adapter
+- `claude_acp_adapter.lua` - Claude Code ACP adapter (`claude-acp`)
+- `claude_agent_acp_adapter.lua` - Claude Agent ACP adapter (`claude-agent-acp`); extends ClaudeACPAdapter to handle different tool call sequencing (empty rawInput on initial tool_call, full rawInput on no-status tool_call_update)
 - `gemini_acp_adapter.lua` - Gemini ACP adapter
 - `codex_acp_adapter.lua` - Codex ACP adapter
 - `opencode_acp_adapter.lua` - OpenCode ACP adapter

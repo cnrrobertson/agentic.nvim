@@ -1,5 +1,6 @@
 --- @alias agentic.UserConfig.ProviderName
 --- | "claude-acp"
+--- | "claude-agent-acp"
 --- | "gemini-acp"
 --- | "codex-acp"
 --- | "opencode-acp"
@@ -57,6 +58,12 @@ local ConfigDefault = {
         ["claude-acp"] = {
             name = "Claude ACP",
             command = "claude-code-acp",
+            env = {},
+        },
+
+        ["claude-agent-acp"] = {
+            name = "Claude Agent ACP",
+            command = "claude-agent-acp",
             env = {},
         },
 
