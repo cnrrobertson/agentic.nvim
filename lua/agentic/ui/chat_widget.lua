@@ -288,6 +288,10 @@ function ChatWidget:_bind_keymaps()
                 if res ~= nil then
                     -- call vim.paste directly to avoid coupling to the file list logic
                     vim.paste({ res }, -1)
+                else
+                    -- No image in clipboard, fall back to regular text paste
+                    local lines = vim.split(vim.fn.getreg("+"), "\n", { plain = true })
+                    vim.paste(lines, -1)
                 end
             end)
         end,

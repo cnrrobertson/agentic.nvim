@@ -74,11 +74,10 @@ local function is_dir_writable(dir)
 end
 
 --- Paste image from clipboard using img-clip plugin
---- @return string|nil file path of saved image or nil on failure
+--- @return string|nil file path of saved image, or nil if no image or img-clip not installed
 function M.paste_image()
     if not M.is_img_clip_installed() then
-        M.show_img_clip_not_installed_message()
-        return
+        return nil
     end
 
     --- @type string|nil
@@ -123,10 +122,7 @@ function M.paste_image()
 
     local success, result = pcall(ImgClipClipboard.save_image, file_path)
     if not success or not result then
-        Logger.notify(
-            "Failed to paste image from clipboard, not an image",
-            vim.log.levels.ERROR
-        )
+        Logger.debug("clipboard: no image in clipboard, falling back to text paste")
         return nil
     end
 
