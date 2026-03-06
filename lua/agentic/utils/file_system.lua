@@ -185,6 +185,43 @@ function FileSystem.get_file_extension(file_path)
     return vim.fn.fnamemodify(file_path, ":e"):lower()
 end
 
+--- Watch a file for changes and reload its buffer once when a change is detected.
+--- Stops watching after the first change event. Used when an external process
+--- writes a file directly without going through fs/write_text_file.
+--- @param abs_path string
+function FileSystem.watch_and_reload_once(abs_path)
+    local bufnr = vim.fn.bufnr(abs_path)
+    if bufnr == -1 or not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+    end
+
+    local watcher = vim.uv.new_fs_event()
+    if not watcher then
+        return
+    end
+
+    watcher:start(abs_path, {}, function(err, _, _)
+        watcher:stop()
+
+        if err then
+            return
+        end
+
+        vim.schedule(function()
+            if not vim.api.nvim_buf_is_valid(bufnr) then
+                return
+            end
+            pcall(function()
+                BufHelpers.execute_on_buffer(bufnr, function()
+                    local view = vim.fn.winsaveview()
+                    vim.cmd("silent! edit!")
+                    vim.fn.winrestview(view)
+                end)
+            end)
+        end)
+    end)
+end
+
 --- Create directory recursively (equivalent to mkdir -p)
 --- @param path string
 --- @return boolean success

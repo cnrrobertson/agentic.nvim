@@ -519,12 +519,16 @@ function SessionManager:new_session(opts)
                 tool_call
             )
 
-            -- pre-emptively clear diff preview when tool call update is received, as it's either done or failed
-            local is_rejection = tool_call_update.status == "failed"
-            self:_clear_diff_in_buffer(
-                tool_call_update.tool_call_id,
-                is_rejection
-            )
+            -- clear diff preview only on terminal status (completed or failed)
+            local is_terminal = tool_call_update.status == "completed"
+                or tool_call_update.status == "failed"
+            if is_terminal then
+                local is_rejection = tool_call_update.status == "failed"
+                self:_clear_diff_in_buffer(
+                    tool_call_update.tool_call_id,
+                    is_rejection
+                )
+            end
 
             -- I need to remove the permission request if the tool call failed before user granted it
             -- It could happen for many reasons, like invalid parameters, tool not found, etc.
@@ -551,6 +555,16 @@ function SessionManager:new_session(opts)
 
                 local is_rejection = option_id == "reject_once"
                     or option_id == "reject_always"
+
+                if not is_rejection then
+                    local tracker = self.message_writer.tool_call_blocks[request.toolCall.toolCallId]
+                    if tracker and tracker.kind == "edit" and tracker.argument then
+                        FileSystem.watch_and_reload_once(
+                            FileSystem.to_absolute_path(tracker.argument)
+                        )
+                    end
+                end
+
                 self:_clear_diff_in_buffer(
                     request.toolCall.toolCallId,
                     is_rejection
