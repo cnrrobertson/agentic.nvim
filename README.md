@@ -127,15 +127,15 @@ tools like `nvm`, `fnm`, etc...
 
 **You are free to chose** any installation method you prefer!
 
-| Provider                           | Install                                                                                                                                                                                        |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [claude-code-acp][claude-code-acp] | `pnpm add -g @zed-industries/claude-code-acp`<br/> **OR** `npm i -g @zed-industries/claude-code-acp`<br/> **OR** [Download binary][claude-code-acp-releases]                                   |
-| [gemini-cli][gemini-cli]           | `pnpm add -g @google/gemini-cli`<br/> **OR** `npm i -g @google/gemini-cli`<br/> **OR** `brew install --cask gemini`                                                                            |
-| [codex-acp][codex-acp]             | `pnpm add -g @zed-industries/codex-acp`<br/> **OR** `npm i -g @zed-industries/codex-acp`<br/> **OR** [Download binary][codex-acp-releases]                                                     |
-| [opencode][opencode]               | `pnpm add -g opencode-ai`<br/> **OR** `npm i -g opencode-ai`<br/> **OR** `brew install opencode`<br/> **OR** `curl -fsSL https://opencode.ai/install \| bash`                                  |
-| [cursor-agent][cursor-agent]       | `pnpm add -g @blowmage/cursor-agent-acp`<br/> **OR** `npm i -g @blowmage/cursor-agent-acp`                                                                                                     |
-| [auggie][auggie]                   | `pnpm add -g @augmentcode/auggie`<br/> **OR** `npm i -g @augmentcode/auggie`<br/> **OR** See [Auggie docs][auggie-docs]                                                                        |
-| [mistral-vibe][mistral-vibe]       | `curl -LsSf https://mistral.ai/vibe/install.sh \| bash`<br/> **OR** `uv tool install mistral-vibe`<br/> **OR** `pip install mistral-vibe`<br/> **OR** [Download binary][mistral-vibe-releases] |
+| Provider                             | Install                                                                                                                                                                                        |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [claude-agent-acp][claude-agent-acp] | `pnpm add -g @zed-industries/claude-agent-acp`<br/> **OR** `npm i -g @zed-industries/claude-agent-acp`<br/> **OR** [Download binary][claude-agent-acp-releases]                                |
+| [gemini-cli][gemini-cli]             | `pnpm add -g @google/gemini-cli`<br/> **OR** `npm i -g @google/gemini-cli`<br/> **OR** `brew install --cask gemini`                                                                            |
+| [codex-acp][codex-acp]               | `pnpm add -g @zed-industries/codex-acp`<br/> **OR** `npm i -g @zed-industries/codex-acp`<br/> **OR** [Download binary][codex-acp-releases]                                                     |
+| [opencode][opencode]                 | `pnpm add -g opencode-ai`<br/> **OR** `npm i -g opencode-ai`<br/> **OR** `brew install opencode`<br/> **OR** `curl -fsSL https://opencode.ai/install \| bash`                                  |
+| [cursor-agent][cursor-agent]         | `pnpm add -g @blowmage/cursor-agent-acp`<br/> **OR** `npm i -g @blowmage/cursor-agent-acp`                                                                                                     |
+| [auggie][auggie]                     | `pnpm add -g @augmentcode/auggie`<br/> **OR** `npm i -g @augmentcode/auggie`<br/> **OR** See [Auggie docs][auggie-docs]                                                                        |
+| [mistral-vibe][mistral-vibe]         | `curl -LsSf https://mistral.ai/vibe/install.sh \| bash`<br/> **OR** `uv tool install mistral-vibe`<br/> **OR** `pip install mistral-vibe`<br/> **OR** [Download binary][mistral-vibe-releases] |
 
 > [!WARNING]  
 > These install commands are here for convenience, please always refer to the
@@ -157,8 +157,8 @@ tools like `nvm`, `fnm`, etc...
   "carlos-algms/agentic.nvim",
 
   opts = {
-    -- Available by default: "claude-acp" | "gemini-acp" | "codex-acp" | "opencode-acp" | "cursor-acp" | "auggie-acp" | "mistral-vibe-acp"
-    provider = "claude-acp", -- setting the name here is all you need to get started
+    -- Available by default: "claude-agent-acp" | "gemini-acp" | "codex-acp" | "opencode-acp" | "cursor-acp" | "auggie-acp" | "mistral-vibe-acp"
+    provider = "claude-agent-acp", -- setting the name here is all you need to get started
   },
 
   -- these are just suggested keymaps; customize as desired
@@ -233,7 +233,7 @@ property:
       -- Override existing provider (e.g., add API key)
       -- Agentic.nvim doesn't require API keys
       -- Only add it if that's how you prefer to authenticate
-      ["claude-acp"] = {
+      ["claude-agent-acp"] = {
         env = {
           ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY"),
         },
@@ -271,7 +271,7 @@ configure it per provider:
   "carlos-algms/agentic.nvim",
   opts = {
     acp_providers = {
-      ["claude-acp"] = {
+      ["claude-agent-acp"] = {
         -- Automatically switch to this mode when a new session starts
         default_mode = "bypassPermissions",
       },
@@ -921,9 +921,9 @@ the the acknowledgments 😊.
 - [avante.nvim](https://github.com/yetone/avante.nvim) - for the ACP client code
   and sidebar structured with multiple panels
 
-[claude-code-acp]: https://github.com/zed-industries/claude-code-acp
-[claude-code-acp-releases]:
-  https://github.com/zed-industries/claude-code-acp/releases
+[claude-agent-acp]: https://github.com/zed-industries/claude-agent-acp
+[claude-agent-acp-releases]:
+  https://github.com/zed-industries/claude-agent-acp/releases
 [gemini-cli]: https://github.com/gemini-cli/gemini-cli
 [codex-acp]: https://github.com/zed-industries/codex-acp
 [codex-acp-releases]: https://github.com/zed-industries/codex-acp/releases

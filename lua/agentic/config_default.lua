@@ -1,5 +1,6 @@
 --- @alias agentic.UserConfig.ProviderName
 --- | "claude-acp"
+--- | "claude-agent-acp"
 --- | "gemini-acp"
 --- | "codex-acp"
 --- | "opencode-acp"
@@ -50,10 +51,16 @@ local ConfigDefault = {
     debug = false,
 
     --- @type agentic.UserConfig.ProviderName
-    provider = "claude-acp",
+    provider = "claude-agent-acp",
 
     --- @type table<agentic.UserConfig.ProviderName, agentic.acp.ACPProviderConfig|nil>
     acp_providers = {
+        ["claude-agent-acp"] = {
+            name = "Claude Agent ACP",
+            command = "claude-agent-acp",
+            env = {},
+        },
+
         ["claude-acp"] = {
             name = "Claude ACP",
             command = "claude-code-acp",

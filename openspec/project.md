@@ -19,7 +19,7 @@ Goals:
 - **Neovim v0.11.0+** API
 - **Lua** (LuaJIT 2.1 bundled with Neovim, based on Lua 5.1)
 - **ACP (Agent Client Protocol)** for AI provider communication
-- **External CLI tools** spawned as subprocesses (claude-code-acp, gemini,
+- **External CLI tools** spawned as subprocesses (claude-agent-acp, gemini,
   codex-acp, opencode, cursor-agent-acp, auggie)
 
 ## Design Principles

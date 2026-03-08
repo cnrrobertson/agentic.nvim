@@ -718,7 +718,7 @@ Agent Client Protocol:
 
 - **Requirements**: External CLI tools must be installed by the user, we don't
   install them for security reasons.
-  - `claude-code-acp` for Claude
+  - `claude-agent-acp` for Claude
   - `gemini` for Gemini
   - `codex-acp` for Codex
   - `opencode` for OpenCode
@@ -732,7 +732,7 @@ NOTE: Install instructs are in the README.md
 
 Each provider has a dedicated adapter in `lua/agentic/acp/adapters/`:
 
-- `claude_acp_adapter.lua` - Claude Code ACP adapter
+- `claude_agent_acp_adapter.lua` - Claude Agent ACP adapter
 - `gemini_acp_adapter.lua` - Gemini ACP adapter
 - `codex_acp_adapter.lua` - Codex ACP adapter
 - `opencode_acp_adapter.lua` - OpenCode ACP adapter
@@ -749,9 +749,9 @@ handling, and protocol quirks.
 
 ```lua
 acp_providers = {
-  ["claude-acp"] = {
-    name = "Claude ACP",                   -- Display name
-    command = "claude-code-acp",           -- CLI command to spawn
+  ["claude-agent-acp"] = {
+    name = "Claude Agent ACP",             -- Display name
+    command = "claude-agent-acp",          -- CLI command to spawn
     env = {                                -- Environment variables
       NODE_NO_WARNINGS = "1",
       IS_AI_TERMINAL = "1",
@@ -777,6 +777,7 @@ The ACP documentation can be found at:
 - Overview: https://agentclientprotocol.com/protocol/overview.md
 - Initialization: https://agentclientprotocol.com/protocol/initialization.md
 - Session Setup: https://agentclientprotocol.com/protocol/session-setup.md
+- https://agentclientprotocol.com/protocol/session-config-options.md
 - Prompt Turn: https://agentclientprotocol.com/protocol/prompt-turn.md
 - Content: https://agentclientprotocol.com/protocol/content.md
 - Tool Calls: https://agentclientprotocol.com/protocol/tool-calls
